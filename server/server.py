@@ -3,7 +3,8 @@
 
 Safety rules this file enforces:
   - listens on 127.0.0.1 only (socket handed over by launchd, or bound here when run by hand)
-  - every /api/ request needs the secret token in the X-MG-Token header
+  - every /api/ request needs the secret token in the X-MG-Token header; the page gets the token
+    by trading in a one-time, 60-second nonce that the `mac-guard` command wrote to a private file
   - the Host header must be exactly 127.0.0.1:PORT (blocks DNS rebinding)
   - state-changing requests must come from this page's own Origin (blocks other websites)
   - the only program it can start is server/runner.py with fixed arguments; nothing from a
@@ -25,8 +26,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import db
+from remediation import fix_for
 from config import (DASHBOARD_DIR, DATA_DIR, HOST, IDLE_EXIT_SECONDS, LAUNCHD_SOCKET_NAME, LOCK_PATH,
-                    MAX_BODY_BYTES, PORT, PYTHON, REPORTS_DIR, RUNNER, TOKEN_PATH, TOOLS, Action, Status, Trigger)
+                    MAX_BODY_BYTES, MIN_TOKEN_LENGTH, NONCE_MAX_AGE_SECONDS, NONCE_PATH, PORT, PYTHON, REPORTS_DIR,
+                    RUNNER, TOKEN_PATH, TOOLS, Action, Status, Trigger)
 
 ALLOWED_HOST = f"{HOST}:{PORT}"
 ALLOWED_ORIGIN = f"http://{HOST}:{PORT}"
@@ -40,6 +43,8 @@ SECURITY_HEADERS = {
                                "base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
     "Cache-Control": "no-store",
 }
 last_activity = time.monotonic()
@@ -52,7 +57,33 @@ def load_token():
         with os.fdopen(fd, "w") as f:
             f.write(secrets.token_urlsafe(32))
     with open(TOKEN_PATH) as f:
-        return f.read().strip()
+        token = f.read().strip()
+    if len(token) < MIN_TOKEN_LENGTH:  # an empty token would make every request "match"
+        sys.exit(f"refusing to start: {TOKEN_PATH} is empty or too short; delete it and run mac-guard again")
+    return token
+
+
+def create_nonce():
+    """Called by the `mac-guard` command: a single-use value the page trades for the real token,
+    so the long-lived token never appears in a command line or in browser history."""
+    nonce = secrets.token_urlsafe(32)
+    fd = os.open(NONCE_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(nonce)
+    return nonce
+
+
+def redeem_nonce(candidate):
+    """True once for the right nonce within its lifetime. The file is removed on every attempt."""
+    try:
+        age = time.time() - os.path.getmtime(NONCE_PATH)
+        with open(NONCE_PATH) as f:
+            expected = f.read().strip()
+        os.unlink(NONCE_PATH)
+    except OSError:
+        return False
+    return (len(expected) >= MIN_TOKEN_LENGTH and age <= NONCE_MAX_AGE_SECONDS
+            and hmac.compare_digest(candidate.encode("utf-8", "replace"), expected.encode()))
 
 
 def audit_is_running():
@@ -112,7 +143,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get("Host") != ALLOWED_HOST:
             self.deny(403, "bad host")
             return False
-        if api and not hmac.compare_digest(self.headers.get("X-MG-Token", ""), self.token):
+        supplied = self.headers.get("X-MG-Token", "").encode("utf-8", "replace")
+        if api and not hmac.compare_digest(supplied, self.token.encode()):
             self.deny(401, "missing or wrong token - run `mac-guard` in a terminal to open the dashboard")
             return False
         return True
@@ -141,7 +173,20 @@ class Handler(BaseHTTPRequestHandler):
         return body
 
     # ---- routes
+    def safely(self, handler):
+        try:
+            handler()
+        except Exception as exc:  # a bug in one request must not drop the connection or stop the server
+            print(f"request failed: {self.command} {self.path}: {exc!r}", file=sys.stderr, flush=True)
+            self.deny(500, "internal error")
+
     def do_GET(self):
+        self.safely(self.handle_get)
+
+    def do_POST(self):
+        self.safely(self.handle_post)
+
+    def handle_get(self):
         url = urlparse(self.path)
         if url.path in STATIC_FILES:
             if not self.guard(api=False):
@@ -157,19 +202,31 @@ class Handler(BaseHTTPRequestHandler):
                 db.fail_stale_runs()
             state = db.state()
             state.update(running=running, tools=tool_status())
+            for finding in state["open"]:
+                finding["fix"] = fix_for(finding["key"])
             return self.send_json(200, state)
         if url.path == "/api/report":
             run = parse_qs(url.query).get("run", [""])[0]
-            path = db.report_path(int(run)) if run.isdigit() else None
+            path = db.report_path(int(run)) if run.isascii() and run.isdigit() else None
+            real = os.path.realpath(path) if path else ""
             # only ever serve files that sit directly inside the reports folder
-            if not path or os.path.dirname(os.path.realpath(path)) != os.path.realpath(REPORTS_DIR) \
-                    or not os.path.isfile(path):
+            if os.path.dirname(real) != os.path.realpath(REPORTS_DIR) or not os.path.isfile(real):
                 return self.deny(404, "no such report")
-            with open(path, "rb") as f:
+            with open(real, "rb") as f:
                 return self.send(200, f.read(), "text/plain; charset=utf-8")
         self.deny(404, "not found")
 
-    def do_POST(self):
+    def handle_post(self):
+        if self.path == "/api/login":  # the one API call made before the page has the token
+            if not self.guard(api=False):
+                return
+            body = self.read_json()
+            if body is None:
+                return
+            nonce = body.get("nonce")
+            if not isinstance(nonce, str) or not redeem_nonce(nonce):
+                return self.deny(401, "sign-in link expired - run `mac-guard` again")
+            return self.send_json(200, {"token": self.token})
         if not self.guard(api=True):
             return
         body = self.read_json()
@@ -210,6 +267,7 @@ def exit_when_idle():
 
 
 def main():
+    os.umask(0o077)
     db.init()
     Handler.token = load_token()
     server = ThreadingHTTPServer((HOST, PORT), Handler, bind_and_activate=False)

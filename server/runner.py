@@ -15,11 +15,14 @@ from config import (AUDIT_TIMEOUT_SECONDS, CHECK_SCRIPT, DATA_DIR, LOCK_PATH, RE
 
 def parse_findings(path):
     rows = []
-    with open(path, encoding="utf-8", errors="replace") as f:
+    # newline="\n": only LF ends a row, so a stray CR inside a value cannot split (and hide) a finding
+    with open(path, encoding="utf-8", errors="replace", newline="\n") as f:
         for line in f:
             parts = line.rstrip("\n").split("\t")
-            if len(parts) == 5 and parts[0] in Severity.ALL:
-                rows.append(tuple(parts))
+            if len(parts) != 5 or parts[0] not in Severity.ALL:
+                print(f"malformed finding row skipped: {line[:200]!r}", file=sys.stderr)
+                continue
+            rows.append(tuple(p.replace("\r", " ") for p in parts))
     # the same key can be reported twice (e.g. two processes of one program); keep the first
     seen, unique = set(), []
     for row in rows:
@@ -40,6 +43,9 @@ def main():
     ap.add_argument("--trigger", choices=Trigger.ALL, default=Trigger.MANUAL)
     args = ap.parse_args()
 
+    os.umask(0o077)  # reports list accounts, keys and extensions: readable by this user only
+    os.makedirs(DATA_DIR, mode=0o700, exist_ok=True)
+    os.chmod(DATA_DIR, 0o700)
     os.makedirs(REPORTS_DIR, exist_ok=True)
     db.init()
     lock = open(LOCK_PATH, "w")

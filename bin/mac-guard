@@ -13,13 +13,17 @@ conf() { "$PY" -c "import config; print(config.$1)"; }
 case "${1:-open}" in
   open)
     HOST=$(conf HOST); PORT=$(conf PORT)
-    TOKEN=$("$PY" -c "import server; print(server.load_token())")
-    # launchd normally holds the port and starts the server on demand; fall back to starting it here
-    if ! nc -z -G1 "$HOST" "$PORT" >/dev/null 2>&1; then
-      nohup "$PY" "$REPO/server/server.py" >/dev/null 2>&1 &
-      sleep 1
+    # 127.0.0.1 is shared by every account on this Mac: never hand a sign-in link to someone else's listener
+    owner=$(lsof -nP -a -iTCP@"$HOST":"$PORT" -sTCP:LISTEN -Fu 2>/dev/null | sed -n 's/^u//p' | head -1)
+    if [ -n "$owner" ] && [ "$owner" != "$(id -u)" ]; then
+      echo "refusing: port $PORT is held by uid $owner, not by you" >&2; exit 1
     fi
-    open "http://$HOST:$PORT/#t=$TOKEN"
+    if ! launchctl print "gui/$(id -u)/com.abdulhadi.mac-guard.dashboard" >/dev/null 2>&1 && [ -z "$owner" ]; then
+      echo "the dashboard job is not loaded - run: $REPO/install.sh" >&2; exit 1
+    fi
+    # a single-use, 60-second sign-in value; the page trades it for the real token
+    NONCE=$("$PY" -c "import server; server.load_token(); print(server.create_nonce())")
+    open "http://$HOST:$PORT/#n=$NONCE"
     ;;
   run)
     exec "$PY" "$REPO/server/runner.py" --trigger manual

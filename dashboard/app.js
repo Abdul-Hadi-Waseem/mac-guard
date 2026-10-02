@@ -13,17 +13,20 @@ const $ = (id) => document.getElementById(id);
 let pollTimer = null;
 let startRequested = false;
 
-// The launcher opens the page as /#t=<token>; keep it in this origin's storage and clean the URL.
-function takeTokenFromUrl() {
-  const match = location.hash.match(/^#t=([\w-]+)$/);
-  if (match) {
-    localStorage.setItem(TOKEN_KEY, match[1]);
-    history.replaceState(null, '', '/');
-  }
+// The launcher opens the page as /#n=<one-time nonce>. Trade it for the token, which is kept only
+// for this tab (sessionStorage), and clean the URL. A wrong nonce leaves any existing token alone.
+async function signInFromUrl() {
+  const match = location.hash.match(/^#n=([\w-]+)$/);
+  if (!match) return;
+  history.replaceState(null, '', '/');
+  const response = await fetch('/api/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nonce: match[1] }),
+  });
+  if (response.ok) sessionStorage.setItem(TOKEN_KEY, (await response.json()).token);
 }
 
 async function api(path, body) {
-  const options = { headers: { 'X-MG-Token': localStorage.getItem(TOKEN_KEY) || '' } };
+  const options = { headers: { 'X-MG-Token': sessionStorage.getItem(TOKEN_KEY) || '' } };
   if (body) {
     options.method = 'POST';
     options.headers['Content-Type'] = 'application/json';
@@ -95,6 +98,11 @@ function findingRow(finding, list) {
   if (finding.reappeared && list === LIST.OPEN) title.append(el('span', 'tag', 'came back'));
   body.append(title);
   if (finding.detail) body.append(el('p', 'f-detail', finding.detail));
+  if (finding.fix) {
+    const fix = el('p', 'f-fix');
+    fix.append(el('strong', '', 'How to fix: '), document.createTextNode(finding.fix));
+    body.append(fix);
+  }
   const meta = [`first seen ${finding.first_seen}`];
   if (list === LIST.RESOLVED) meta.push(`resolved ${finding.resolved_at}`);
   if (finding.note) meta.push(`note: ${finding.note}`);
@@ -228,5 +236,4 @@ $('run').addEventListener('click', async () => {
 $('report-close').addEventListener('click', () => $('report-dialog').close());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 
-takeTokenFromUrl();
-refresh();
+signInFromUrl().catch(() => {}).then(refresh);

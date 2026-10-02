@@ -5,7 +5,9 @@
 OUT="${MG_DATA:-$HOME/.mac-guard}"; mkdir -p "$OUT/reports" "$OUT/snapshots"
 TS="${MG_TS:-$(date +%Y-%m-%d_%H%M%S)}"; REPORT="$OUT/reports/$TS.txt"; SNAP="$OUT/snapshots/$TS.txt"; CHANGES="$OUT/reports/$TS.changes"
 HERE="$(cd "$(dirname "$0")" && pwd)"
-clean() { printf '%s' "$1" | tr '\t\n' '  '; }
+umask 077
+# every control character becomes a space, so a value can never break out of its TSV field or row
+clean() { printf '%s' "$1" | tr '\000-\037\177' ' '; }
 finding() { [ -n "$MG_FINDINGS" ] && printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$(clean "$3")" "$(clean "$4")" "$(clean "$5")" >> "$MG_FINDINGS"; return 0; }
 PREV=$(ls -1 "$OUT/snapshots"/*.txt 2>/dev/null | tail -1)
 CHROME="$HOME/Library/Application Support/Google/Chrome"

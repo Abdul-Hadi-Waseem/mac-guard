@@ -83,6 +83,7 @@ button[disabled] { opacity: 0.55; cursor: progress; }
 .sev { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); padding-top: 3px; }
 .f-title { font-weight: 600; }
 .f-detail { color: var(--ink-2); font-size: 13px; overflow-wrap: anywhere; }
+.f-fix { font-size: 13px; margin-top: 6px; padding: 8px 10px; border-left: 3px solid var(--hairline); background: var(--surface); border-radius: 0 6px 6px 0; overflow-wrap: anywhere; }
 .f-meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
 .tag { display: inline-block; font-size: 11px; padding: 0 6px; border: 1px solid var(--border); border-radius: 999px; margin-left: 6px; color: var(--ink-2); font-weight: 500; }
 .accept-form { display: flex; gap: 6px; margin-top: 8px; }

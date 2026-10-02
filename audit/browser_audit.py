@@ -42,7 +42,7 @@ def finding(severity, category, key, title, detail=""):
         return
     row = [severity, category, key, title, detail]
     with open(path, "a", encoding="utf-8") as f:
-        f.write("\t".join(re.sub(r"[\t\n]", " ", str(c)) for c in row) + "\n")
+        f.write("\t".join(re.sub(r"[\x00-\x1f\x7f]", " ", str(c)) for c in row) + "\n")
 
 def load(path):
     try:

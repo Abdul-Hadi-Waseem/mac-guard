@@ -6,6 +6,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.environ.get("MG_DATA", os.path.join(HOME, ".mac-guard"))
 DB_PATH = os.path.join(DATA_DIR, "guard.db")
 TOKEN_PATH = os.path.join(DATA_DIR, "token")
+NONCE_PATH = os.path.join(DATA_DIR, "nonce")
 LOCK_PATH = os.path.join(DATA_DIR, "run.lock")
 REPORTS_DIR = os.path.join(DATA_DIR, "reports")
 CHECK_SCRIPT = os.path.join(REPO, "audit", "check.sh")
@@ -19,6 +20,8 @@ LAUNCHD_SOCKET_NAME = "Listener"   # must match the Sockets key in the dashboard
 IDLE_EXIT_SECONDS = 15 * 60
 AUDIT_TIMEOUT_SECONDS = 10 * 60
 MAX_BODY_BYTES = 4096
+MIN_TOKEN_LENGTH = 32
+NONCE_MAX_AGE_SECONDS = 60
 
 
 class Severity:

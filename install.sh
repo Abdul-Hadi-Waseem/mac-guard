@@ -23,7 +23,7 @@ fi
 mkdir -p "$DATA/reports" "$DATA/snapshots" "$AGENTS"
 chmod 700 "$DATA"
 PYTHONPATH="$REPO/server" PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -c "import db, server; db.init(); server.load_token()"
-chmod 600 "$DATA/token" "$DATA/guard.db"
+chmod -R go-rwx "$DATA"   # reports name accounts, keys and extensions: this user only
 
 unload
 for l in "${LABELS[@]}"; do

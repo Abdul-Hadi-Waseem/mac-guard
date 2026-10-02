@@ -41,6 +41,7 @@ audit/browser_audit.py   browser audit
 server/config.py         paths, port and constants
 server/db.py             SQLite schema and the finding lifecycle
 server/runner.py         runs an audit and loads the results
+server/remediation.py    the "How to fix" steps shown for each finding
 server/server.py         dashboard server (standard library only)
 dashboard/               the page: index.html, app.js, style.css
 launchd/                 templates for the two launchd jobs
@@ -53,8 +54,10 @@ Data lives outside the repo in `~/.mac-guard/`: `guard.db`, `reports/`, `snapsho
 
 - Listens on `127.0.0.1:47821` only.
 - launchd holds the port and starts the server when the page is opened; the server exits after 15 idle minutes.
-- Every API request needs the secret token from `~/.mac-guard/token`. `mac-guard` hands it to the page once,
-  in the URL fragment, and the page keeps it in its own browser storage.
+- Every API request needs the secret token from `~/.mac-guard/token`. `mac-guard` opens the page with a
+  single-use, 60-second sign-in value; the page trades it for the token and keeps the token for that tab only.
+  Open the dashboard with the `mac-guard` command; a bookmark alone will ask you to run it.
+- `mac-guard` refuses to open the page if the port is held by another user account.
 - Requests with any other `Host` header are refused, and state-changing requests must come from the page's own origin.
 - The only thing the server can start is `server/runner.py` with fixed arguments.
 
