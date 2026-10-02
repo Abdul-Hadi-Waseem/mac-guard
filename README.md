@@ -9,6 +9,7 @@ A local security audit and dashboard for this Mac. Everything runs on the laptop
 | `mac-guard` | Opens the dashboard in the browser |
 | `mac-guard run` | Runs an audit now and prints the result |
 | `mac-guard status` | One-line summary of the last audit |
+| `mac-guard repo <git-url>` | Clones, scans and opens an untrusted repo in a container |
 
 An audit also runs every day at 13:00 (or at the next wake). If it finds something new, a notification appears.
 
@@ -47,6 +48,8 @@ server/runner.py         runs an audit and loads the results
 server/remediation.py    the "How to fix" steps shown for each finding
 server/server.py         dashboard server (standard library only)
 dashboard/               the page: index.html, app.js, style.css
+untrusted/open-repo.sh   clone + scan + container shell for a repo you do not trust
+untrusted/scan_repo.py   the static scan
 launchd/                 templates for the two launchd jobs
 install.sh               install / uninstall
 ```
@@ -70,6 +73,34 @@ Data lives outside the repo in `~/.mac-guard/`: `guard.db`, `reports/`, `snapsho
 ./install.sh             # data folder, launchd jobs, `mac-guard` command
 ./install.sh uninstall   # removes the jobs and the command, keeps the data
 ```
+
+## Untrusted repos
+
+For any project you did not write (a client's repo, a take-home test, something from GitHub):
+
+```
+mac-guard repo https://github.com/someone/project.git      # clone + scan + shell in a container
+mac-guard repo ~/untrusted/project --port 3000             # reopen it, with the dev server on 127.0.0.1:3000
+mac-guard repo ~/untrusted/project --no-network            # no network at all, once dependencies are installed
+mac-guard repo <url> --scan-only                           # just the verdict
+```
+
+1. **Clone** into `~/untrusted/` with git hooks, submodules and LFS disabled, so nothing from the repo runs.
+2. **Scan** without executing anything: install scripts that download or decode code, `.vscode/tasks.json` tasks
+   set to run on folder open, a project `.npmrc` that re-enables scripts or changes the registry, dev-container
+   host commands, obfuscated code, committed executables, symlinks out of the repo, and code that both reads
+   credential locations and talks to the network. Verdict: nothing found / REVIEW / DANGEROUS.
+3. **Container**: a shell as an unprivileged user that can see that one folder. No home folder, SSH keys, `.env`
+   files, browser data or Docker socket; all capabilities dropped; `.git` is read-only so the code cannot plant
+   git hooks. The container is deleted when you exit; the folder stays.
+
+Limits to know:
+- With the network on, code in the container can still reach the internet and services listening on this Mac
+  (for example a local Postgres on 5432). Use `--no-network` whenever you can, and keep local services
+  password-protected.
+- The repo folder itself is writable, so the code can change its own files. Keep using `mac-guard repo`;
+  do not open `~/untrusted/...` in an editor with Workspace Trust on, and do not run it on the Mac directly.
+- The scan catches known tricks, not all malware. The container is the protection; the scan is a warning.
 
 ## Other protections set up by this repo
 

@@ -3,6 +3,7 @@
 #   mac-guard            open the dashboard in the browser
 #   mac-guard run        run an audit now and print the result
 #   mac-guard status     one-line summary of the last audit
+#   mac-guard repo URL   clone, scan and open an untrusted repo in a container (see untrusted/open-repo.sh)
 set -euo pipefail
 SELF="$0"; while [ -L "$SELF" ]; do SELF="$(readlink "$SELF")"; done
 REPO="$(cd "$(dirname "$SELF")/.." && pwd)"
@@ -28,6 +29,10 @@ case "${1:-open}" in
   run)
     exec "$PY" "$REPO/server/runner.py" --trigger manual
     ;;
+  repo)
+    shift
+    exec "$REPO/untrusted/open-repo.sh" "$@"
+    ;;
   status)
     "$PY" - <<'PY'
 import db
@@ -43,6 +48,6 @@ else:
 PY
     ;;
   *)
-    sed -n '2,5p' "$SELF" | sed 's/^# \{0,1\}//'
+    sed -n '2,6p' "$SELF" | sed 's/^# \{0,1\}//'
     ;;
 esac
