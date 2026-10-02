@@ -59,6 +59,9 @@ REMEDIATION = (
     ("MDM-enrolled", "System Settings > General > Device Management lists who manages this Mac. If it is not your "
                      "employer, remove the profile."),
     ("system proxy", "System Settings > Network > your connection > Details > Proxies: turn off every proxy you did not set."),
+    ("npm ", "Run: ~/mac-guard/install.sh hygiene"),
+    ("Safe Chain", "Run: ~/mac-guard/install.sh hygiene"),
+    ("VS Code", "Run: ~/mac-guard/install.sh hygiene"),
     ("certificate trust", "Open Keychain Access > System > Certificates, look for certificates marked 'always trust' "
                           "that you did not add, and delete them."),
 )

@@ -89,6 +89,12 @@ hardening() {
   [ -n "$(scutil --proxy | grep -E 'HTTPEnable : 1|HTTPSEnable : 1|ProxyAutoConfigEnable : 1|SOCKSEnable : 1')" ] && chk WARN "A system proxy is configured" || chk PASS "No system proxy"
   nr=$(security find-certificate -a /Library/Keychains/System.keychain 2>/dev/null | grep -c '"labl"'); chk INFO "$nr certificates in System keychain (user-added roots can intercept HTTPS; listed below)"
   security find-certificate -a /Library/Keychains/System.keychain 2>/dev/null | awk -F'"' '/"labl"/{print "        - "$4}'
+  # developer supply-chain settings (set by `install.sh hygiene`)
+  grep -qE "^ignore-scripts *= *true" ~/.npmrc 2>/dev/null && chk PASS "npm install scripts disabled by default" || chk WARN "npm runs dependency install scripts" "ignore-scripts=true is missing from ~/.npmrc"
+  grep -qE "^min-release-age *= *[1-9]" ~/.npmrc 2>/dev/null && chk PASS "npm skips freshly published versions" || chk WARN "npm installs versions published minutes ago" "min-release-age is missing from ~/.npmrc"
+  [ -x ~/.safe-chain/bin/safe-chain ] && grep -q "safe-chain" ~/.zshrc 2>/dev/null && chk PASS "Safe Chain wraps package managers" || chk WARN "Safe Chain is not active" "malicious packages are not blocked at install"
+  vs="$HOME/Library/Application Support/Code/User/settings.json"
+  if [ -f "$vs" ]; then grep -qE '"task.allowAutomaticTasks" *: *"off"' "$vs" && chk PASS "VS Code automatic tasks off" || chk WARN "VS Code may auto-run a repo's tasks" "task.allowAutomaticTasks is not off"; fi
   tu=$(security dump-trust-settings 2>&1 | grep -c "^Cert "); ta=$(security dump-trust-settings -d 2>&1 | grep -c "^Cert "); [ "$tu$ta" = "00" ] && chk PASS "No custom certificate trust overrides" || chk WARN "Custom certificate trust settings present" "user:$tu admin:$ta - run: security dump-trust-settings -d"
 }
 

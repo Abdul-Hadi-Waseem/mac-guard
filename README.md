@@ -68,6 +68,15 @@ Data lives outside the repo in `~/.mac-guard/`: `guard.db`, `reports/`, `snapsho
 ./install.sh uninstall   # removes the jobs and the command, keeps the data
 ```
 
+## Other protections set up by this repo
+
+- `./install.sh tools`: LuLu (outbound firewall), BlockBlock (alerts on new startup items), KnockKnock
+  (on-demand persistence scan).
+- `./install.sh hygiene`: npm `ignore-scripts=true` and `min-release-age=7`, Safe Chain (blocks known-malicious
+  packages for npm, pnpm, yarn, pip and others), and VS Code automatic tasks off.
+  - For one trusted install that needs its build scripts: `npm install --ignore-scripts=false`
+  - After a fresh clone that uses husky: `npm run prepare`
+
 ## Limits
 
 - Without Full Disk Access for the terminal, macOS privacy grants (Screen Recording, Accessibility,
