@@ -1,0 +1,44 @@
+#!/bin/bash
+# mac-guard launcher.
+#   mac-guard            open the dashboard in the browser
+#   mac-guard run        run an audit now and print the result
+#   mac-guard status     one-line summary of the last audit
+set -euo pipefail
+SELF="$0"; while [ -L "$SELF" ]; do SELF="$(readlink "$SELF")"; done
+REPO="$(cd "$(dirname "$SELF")/.." && pwd)"
+PY=/usr/bin/python3
+export PYTHONPATH="$REPO/server" PYTHONDONTWRITEBYTECODE=1
+conf() { "$PY" -c "import config; print(config.$1)"; }
+
+case "${1:-open}" in
+  open)
+    HOST=$(conf HOST); PORT=$(conf PORT)
+    TOKEN=$("$PY" -c "import server; print(server.load_token())")
+    # launchd normally holds the port and starts the server on demand; fall back to starting it here
+    if ! nc -z -G1 "$HOST" "$PORT" >/dev/null 2>&1; then
+      nohup "$PY" "$REPO/server/server.py" >/dev/null 2>&1 &
+      sleep 1
+    fi
+    open "http://$HOST:$PORT/#t=$TOKEN"
+    ;;
+  run)
+    exec "$PY" "$REPO/server/runner.py" --trigger manual
+    ;;
+  status)
+    "$PY" - <<'PY'
+import db
+db.init()
+s = db.state()
+run = s["last_run"]
+if not run:
+    print("no audit has completed yet - run: mac-guard run")
+else:
+    n = lambda sev: sum(f["severity"] == sev for f in s["open"])
+    print(f"last audit {run['finished_at']}: open high {n('high')}, medium {n('medium')}, low {n('low')}; "
+          f"accepted {len(s['accepted'])}; checks passed {run['n_pass']}")
+PY
+    ;;
+  *)
+    sed -n '2,5p' "$SELF" | sed 's/^# \{0,1\}//'
+    ;;
+esac

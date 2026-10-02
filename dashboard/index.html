@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mac-guard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>mac-guard</h1>
+      <p id="last-run" class="muted">Loading…</p>
+    </div>
+    <button id="run" type="button" class="primary">Run audit</button>
+  </header>
+
+  <p id="notice" class="notice" hidden></p>
+
+  <main id="app" hidden>
+    <section class="verdict" id="verdict" aria-live="polite">
+      <span class="verdict-icon" id="verdict-icon" aria-hidden="true"></span>
+      <div>
+        <p class="verdict-title" id="verdict-title"></p>
+        <p class="muted" id="verdict-sub"></p>
+      </div>
+    </section>
+
+    <section class="tiles" aria-label="Summary">
+      <div class="tile"><p class="tile-label">Open, high</p><p class="tile-value" id="n-high">0</p></div>
+      <div class="tile"><p class="tile-label">Open, medium</p><p class="tile-value" id="n-medium">0</p></div>
+      <div class="tile"><p class="tile-label">Open, low</p><p class="tile-value" id="n-low">0</p></div>
+      <div class="tile"><p class="tile-label">Accepted</p><p class="tile-value" id="n-accepted">0</p></div>
+      <div class="tile"><p class="tile-label">Checks passed</p><p class="tile-value" id="n-pass">0</p></div>
+    </section>
+
+    <section>
+      <h2>Protection</h2>
+      <ul class="tools" id="tools"></ul>
+    </section>
+
+    <section>
+      <h2>Changed since the previous run</h2>
+      <pre id="changes" class="changes"></pre>
+    </section>
+
+    <section>
+      <h2>Open findings</h2>
+      <ul class="findings" id="open"></ul>
+    </section>
+
+    <details>
+      <summary>Accepted <span class="count" id="c-accepted"></span></summary>
+      <ul class="findings" id="accepted"></ul>
+    </details>
+
+    <details>
+      <summary>Resolved <span class="count" id="c-resolved"></span></summary>
+      <ul class="findings" id="resolved"></ul>
+    </details>
+
+    <details>
+      <summary>Passed checks and information <span class="count" id="c-checks"></span></summary>
+      <ul class="checks" id="checks"></ul>
+    </details>
+
+    <section>
+      <h2>Run history</h2>
+      <div class="legend" aria-hidden="true">
+        <span><i class="sw high"></i>High</span><span><i class="sw medium"></i>Medium</span><span><i class="sw low"></i>Low</span>
+      </div>
+      <table class="history">
+        <thead><tr><th>Started</th><th>Trigger</th><th>Result</th><th class="num">High</th><th class="num">Medium</th><th class="num">Low</th><th>Mix</th><th>Report</th></tr></thead>
+        <tbody id="history"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <dialog id="report-dialog">
+    <header><h2 id="report-title">Report</h2><button id="report-close" type="button">Close</button></header>
+    <pre id="report-body"></pre>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>

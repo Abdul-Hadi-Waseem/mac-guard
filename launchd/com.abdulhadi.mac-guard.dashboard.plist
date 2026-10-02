@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Dashboard server, started on demand: launchd holds 127.0.0.1:47821 and only launches the
+     server when the page is opened. The server exits by itself after 15 idle minutes.
+     install.sh replaces __REPO__ and __DATA__ and copies this to ~/Library/LaunchAgents. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.abdulhadi.mac-guard.dashboard</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>__REPO__/server/server.py</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict><key>PYTHONDONTWRITEBYTECODE</key><string>1</string></dict>
+  <key>Sockets</key>
+  <dict>
+    <key>Listener</key>
+    <dict>
+      <key>SockNodeName</key><string>127.0.0.1</string>
+      <key>SockServiceName</key><string>47821</string>
+      <key>SockFamily</key><string>IPv4</string>
+    </dict>
+  </dict>
+  <key>StandardOutPath</key><string>__DATA__/server.log</string>
+  <key>StandardErrorPath</key><string>__DATA__/server.log</string>
+</dict>
+</plist>
