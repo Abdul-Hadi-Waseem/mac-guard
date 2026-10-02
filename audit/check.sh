@@ -91,6 +91,11 @@ hardening() {
   [ -n "$(scutil --proxy | grep -E 'HTTPEnable : 1|HTTPSEnable : 1|ProxyAutoConfigEnable : 1|SOCKSEnable : 1')" ] && chk WARN "A system proxy is configured" || chk PASS "No system proxy"
   nr=$(security find-certificate -a /Library/Keychains/System.keychain 2>/dev/null | grep -c '"labl"'); chk INFO "$nr certificates in System keychain (user-added roots can intercept HTTPS; listed below)"
   security find-certificate -a /Library/Keychains/System.keychain 2>/dev/null | awk -F'"' '/"labl"/{print "        - "$4}'
+  # always-on protection tools (installed by `install.sh tools`)
+  sx=$(systemextensionsctl list 2>/dev/null)
+  echo "$sx" | grep -i "lulu" | grep -q "activated enabled" && chk PASS "LuLu outbound firewall active" || chk WARN "LuLu outbound firewall is not active" "$([ -d /Applications/LuLu.app ] && echo 'installed but its network extension is not approved' || echo 'not installed')"
+  { [ -e /Library/LaunchDaemons/com.objective-see.blockblock.plist ] || pgrep -qif blockblock; } && chk PASS "BlockBlock persistence monitor installed" || chk WARN "BlockBlock persistence monitor is not installed" "nothing alerts you when a new startup item is added"
+  echo "$sx" | grep -i "santa" | grep -q "activated enabled" && chk PASS "Santa binary authorization active" || chk WARN "Santa binary authorization is not active" "$([ -d /Applications/Santa.app ] && echo 'installed but its system extension is not approved' || echo 'not installed')"
   # developer supply-chain settings (set by `install.sh hygiene`)
   grep -qE "^ignore-scripts *= *true" ~/.npmrc 2>/dev/null && chk PASS "npm install scripts disabled by default" || chk WARN "npm runs dependency install scripts" "ignore-scripts=true is missing from ~/.npmrc"
   grep -qE "^min-release-age *= *[1-9]" ~/.npmrc 2>/dev/null && chk PASS "npm skips freshly published versions" || chk WARN "npm installs versions published minutes ago" "min-release-age is missing from ~/.npmrc"

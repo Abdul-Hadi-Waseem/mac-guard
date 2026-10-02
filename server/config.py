@@ -59,9 +59,11 @@ class Action:
     ALL = (ACCEPT, REOPEN)
 
 
-# Protection tools shown on the dashboard: (name, paths that mean "installed", process names that mean "running")
+# Protection tools shown on the dashboard:
+# (name, paths that mean "installed", text to find among activated system extensions, process names that mean "running")
 TOOLS = (
-    ("Santa", ("/Applications/Santa.app",), ("santad", "com.northpolesec.santa.daemon")),
-    ("BlockBlock", ("/Applications/BlockBlock Helper.app", "/Library/Objective-See/BlockBlock"), ("BlockBlock", "BlockBlock Helper")),
-    ("LuLu", ("/Applications/LuLu.app",), ("LuLu", "com.objective-see.lulu.extension")),
+    ("Santa", ("/Applications/Santa.app",), "santa", ()),
+    ("BlockBlock", ("/Library/Objective-See/BlockBlock", "/Library/LaunchDaemons/com.objective-see.blockblock.plist"),
+     None, ("BlockBlock", "BlockBlock Helper")),
+    ("LuLu", ("/Applications/LuLu.app",), "lulu", ()),
 )

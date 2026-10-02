@@ -104,8 +104,10 @@ Limits to know:
 
 ## Other protections set up by this repo
 
-- `./install.sh tools`: LuLu (outbound firewall), BlockBlock (alerts on new startup items), KnockKnock
-  (on-demand persistence scan).
+- `./install.sh tools`: gitleaks, LuLu (outbound firewall), BlockBlock (alerts on new startup items), KnockKnock
+  (on-demand persistence scan) and Santa (binary authorization; starts in Monitor mode, which blocks nothing).
+  Run it in Terminal: it asks for your password, and each tool then needs an approval in System Settings.
+  The audit flags any of these that is not active.
 - `./install.sh hygiene`: npm `ignore-scripts=true` and `min-release-age=7`, Safe Chain (blocks known-malicious
   packages for npm, pnpm, yarn, pip and others), and VS Code automatic tasks off.
   - For one trusted install that needs its build scripts: `npm install --ignore-scripts=false`

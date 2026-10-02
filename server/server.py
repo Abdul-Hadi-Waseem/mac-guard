@@ -98,9 +98,12 @@ def audit_is_running():
 
 
 def tool_status():
+    extensions = subprocess.run(["/usr/bin/systemextensionsctl", "list"], capture_output=True, text=True).stdout.lower()
+    active = [line for line in extensions.splitlines() if "activated enabled" in line]
     tools = []
-    for name, paths, processes in TOOLS:
-        running = any(subprocess.run(["/usr/bin/pgrep", "-x", p], capture_output=True).returncode == 0 for p in processes)
+    for name, paths, extension, processes in TOOLS:
+        running = (bool(extension) and any(extension in line for line in active)) or \
+            any(subprocess.run(["/usr/bin/pgrep", "-x", p], capture_output=True).returncode == 0 for p in processes)
         tools.append({"name": name, "installed": running or any(os.path.exists(p) for p in paths), "running": running})
     return tools
 

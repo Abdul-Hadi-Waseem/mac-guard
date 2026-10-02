@@ -67,6 +67,12 @@ REMEDIATION = (
     ("MDM-enrolled", "System Settings > General > Device Management lists who manages this Mac. If it is not your "
                      "employer, remove the profile."),
     ("system proxy", "System Settings > Network > your connection > Details > Proxies: turn off every proxy you did not set."),
+    ("LuLu", "If it is not installed run ~/mac-guard/install.sh tools in Terminal. Then open LuLu from Applications "
+             "and approve its network extension in System Settings when asked."),
+    ("BlockBlock", "In Terminal run: brew install --cask blockblock (it asks for your password). Then give "
+                   "BlockBlock Full Disk Access in System Settings > Privacy & Security when it asks."),
+    ("Santa", "In Terminal run: brew install --cask santa (it asks for your password), then approve its system "
+              "extension and Full Disk Access in System Settings. It starts in Monitor mode, which blocks nothing."),
     ("npm ", "Run: ~/mac-guard/install.sh hygiene"),
     ("Safe Chain", "Run: ~/mac-guard/install.sh hygiene"),
     ("VS Code", "Run: ~/mac-guard/install.sh hygiene"),
