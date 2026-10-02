@@ -122,7 +122,13 @@ volatile() {
   sec "NETWORK";                     ifconfig | grep -E "inet " ; netstat -rn -f inet | grep default
   sec "ARP: GATEWAY + DUPLICATE MACS (spoofing indicator)"
   gw=$(netstat -rn -f inet | awk '/^default/{print $2; exit}'); arp -n "$gw" 2>&1
-  n=$(netstat -rn -f inet | grep -c '^default'); arp -an | awk '{print $4}' | grep -v incomplete | sort | uniq -c | awk -v n="$n" '$1>n{print "DUPLICATE MAC:",$2,"x"$1}' | while IFS= read -r l; do echo "$l"; finding high network "arp:$l" "Duplicate MAC address on the network (possible ARP spoofing)" "$l"; done
+  # spoofing looks like this: the router's MAC also answers for another address, or the router's
+  # address has two MACs. (One device showing up on Wi-Fi + Ethernet + link-local is normal.)
+  gwmac=$(arp -n "$gw" 2>/dev/null | awk '{print $4; exit}')
+  arp -an | awk -v m="$gwmac" -v g="($gw)" '$4==m && $2!=g && $2 !~ /^\(169\.254\./ {print $2}' | sort -u | while IFS= read -r ip; do
+    l="router MAC $gwmac also answers for $ip"; echo "DUPLICATE MAC: $l"; finding high network "arp:gateway-mac-shared:$ip" "The router's MAC address answers for another address (possible ARP spoofing)" "$l"; done
+  nm=$(arp -an | awk -v g="($gw)" '$2==g {print $4}' | grep -v incomplete | sort -u | wc -l | tr -d ' ')
+  [ "$nm" -gt 1 ] && { echo "DUPLICATE MAC: router $gw has $nm MAC addresses"; finding high network "arp:gateway-two-macs" "The router's address has more than one MAC (possible ARP spoofing)" "$gw has $nm MAC addresses"; }
   sec "FIREWALL: INBOUND FLOWS BLOCKED, BY APP (6h; source IPs are not logged by macOS)";        log show --last 6h --style compact --predicate 'process == "socketfilterfw"' 2>/dev/null | grep -E "verdict: 2|Deny|deny" | sed -E 's/^.*KNOWN APP FLOW: //; s/, return.*//' | sort | uniq -c | sort -rn | head -20
   sec "SSH / SCREEN SHARING / AUTH FAILURES (24h)"
   log show --last 24h --style compact --predicate 'process == "sshd" OR process == "screensharingd" OR (process == "loginwindow" AND eventMessage CONTAINS[c] "authentication failed") OR (process == "sudo" AND eventMessage CONTAINS[c] "incorrect password")' 2>/dev/null | grep -v "^Timestamp" | tail -20
