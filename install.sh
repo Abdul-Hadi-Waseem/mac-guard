@@ -1,7 +1,7 @@
 #!/bin/bash
 # Sets up mac-guard for the current user. Safe to run again.
 #   ./install.sh             create the data folder, load the two launchd jobs, link the `mac-guard` command
-#   ./install.sh tools       install LuLu, KnockKnock and BlockBlock (BlockBlock asks for your password)
+#   ./install.sh tools       install gitleaks, LuLu, KnockKnock and BlockBlock (BlockBlock asks for your password)
 #   ./install.sh hygiene     npm/VS Code settings and Safe Chain, so untrusted packages cannot run code on install
 #   ./install.sh uninstall   remove the launchd jobs and the command (keeps ~/.mac-guard data)
 set -euo pipefail
@@ -23,6 +23,7 @@ if [ "${1:-}" = "uninstall" ]; then
 fi
 
 if [ "${1:-}" = "tools" ]; then
+  HOMEBREW_NO_AUTO_UPDATE=1 brew install gitleaks
   HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask lulu knockknock blockblock
   echo "Now open LuLu once and approve its network extension, and give BlockBlock Full Disk Access when asked."
   exit 0

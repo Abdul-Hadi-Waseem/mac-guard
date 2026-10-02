@@ -22,7 +22,9 @@ stable() {
   sec "LAUNCH AGENTS / DAEMONS";     ls -1 ~/Library/LaunchAgents /Library/LaunchAgents /Library/LaunchDaemons /Library/PrivilegedHelperTools 2>&1
   sec "LAUNCH ITEM TARGETS";         for f in ~/Library/LaunchAgents/*.plist /Library/LaunchAgents/*.plist /Library/LaunchDaemons/*.plist; do
                                        [ -f "$f" ] && echo "$f -> $(plutil -extract ProgramArguments.0 raw "$f" 2>/dev/null || plutil -extract Program raw "$f" 2>/dev/null)"; done
-  sec "LOGIN / BACKGROUND ITEMS";    sfltool dumpbtm 2>/dev/null | grep -E "^\s*(Name|Team Identifier|Executable Path|URL):" | grep -v "(null)" | sort -u
+  # (sfltool dumpbtm would list more, but it asks for an admin password on every run; an audit must
+  #  never get you used to typing your password into a dialog. BlockBlock covers new items live.)
+  sec "LOADED BACKGROUND JOBS (non-Apple)"; launchctl list | awk 'NR>1{print $3}' | grep -vE "^(com\.apple\.|application\.)" | sort -u
   sec "CRON";                        crontab -l 2>&1
   sec "SYSTEM EXTENSIONS";           systemextensionsctl list 2>&1; kmutil showloaded 2>/dev/null | grep -v com.apple
   sec "SSH";                         ls -1 ~/.ssh 2>&1; echo "authorized_keys:"; cat ~/.ssh/authorized_keys 2>&1
@@ -119,6 +121,8 @@ volatile() {
   sec "FIREWALL: INBOUND FLOWS BLOCKED, BY APP (6h; source IPs are not logged by macOS)";        log show --last 6h --style compact --predicate 'process == "socketfilterfw"' 2>/dev/null | grep -E "verdict: 2|Deny|deny" | sed -E 's/^.*KNOWN APP FLOW: //; s/, return.*//' | sort | uniq -c | sort -rn | head -20
   sec "SSH / SCREEN SHARING / AUTH FAILURES (24h)"
   log show --last 24h --style compact --predicate 'process == "sshd" OR process == "screensharingd" OR (process == "loginwindow" AND eventMessage CONTAINS[c] "authentication failed") OR (process == "sudo" AND eventMessage CONTAINS[c] "incorrect password")' 2>/dev/null | grep -v "^Timestamp" | tail -20
+  sec "SECRETS (.env inventory and gitleaks over git history; values are never printed)"
+  /usr/bin/python3 "$HERE/secrets_scan.py" 2>&1
   sec "PRIVACY PERMISSIONS (TCC)"
   sqlite3 "$HOME/Library/Application Support/com.apple.TCC/TCC.db" "select service,client,auth_value from access where service in ('kTCCServiceScreenCapture','kTCCServiceAccessibility','kTCCServiceListenEvent','kTCCServiceSystemPolicyAllFiles','kTCCServiceCamera','kTCCServiceMicrophone','kTCCServicePostEvent') order by 1" 2>&1 | sed 's/.*authorization denied.*/NOT READABLE: terminal lacks Full Disk Access - review manually in System Settings > Privacy \& Security/'
 }

@@ -20,6 +20,8 @@ An audit also runs every day at 13:00 (or at the next wake). If it finds somethi
   sharing services, guest/auto-login/root, screen lock, sudo, SSH key permissions, proxy, certificate trust.
 - **Browsers**: every extension in every Chromium profile scored by its permissions, hijack indicators
   (search engine, homepage, startup pages, proxy), and sites allowed to send notifications or pop-ups.
+- **Secrets**: every `.env` file under `~/repos` and whether git tracks or ignores it, plus gitleaks over each
+  repo's git history. Secret values are never printed or stored, only file names, rule names and counts.
 - **What changed** since the previous audit in startup items, accounts, settings and extensions.
 
 Every audit is read-only. It never fixes, removes or disables anything.
@@ -38,6 +40,7 @@ Each finding has a lifecycle, stored in SQLite:
 bin/mac-guard            the command
 audit/check.sh           system audit; writes a text report and one TSV row per check
 audit/browser_audit.py   browser audit
+audit/secrets_scan.py    .env inventory and gitleaks over git history
 server/config.py         paths, port and constants
 server/db.py             SQLite schema and the finding lifecycle
 server/runner.py         runs an audit and loads the results

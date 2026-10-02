@@ -18,6 +18,14 @@ REMEDIATION = (
                  "If it is from a tool you installed, press Accept."),
     ("unsigned:", "Homebrew and node_modules programs are normally ad-hoc signed: press Accept if you know it. "
                   "Otherwise find what started it (ps -o ppid=,command= -p <pid>) and remove it."),
+    # secrets
+    ("env-tracked:", "Treat every value in this file as leaked: rotate them at the provider first. Then run "
+                     "`git rm --cached <file>`, add it to .gitignore and commit. History still holds the old values."),
+    ("env-unignored:", "Add the file name to that repo's .gitignore so it cannot be committed by accident."),
+    ("env-permissions", "Run: find ~/repos -name '.env*' -not -path '*/node_modules/*' -type f -exec chmod 600 {} +"),
+    ("git-secrets:", "Open the report from Run history for the file list. For each real secret: rotate it at the "
+                     "provider (removing the file does not remove it from git history). For false positives such as "
+                     "test fixtures or example keys, press Accept."),
     # browser
     ("ext:", "In that Chrome profile open chrome://extensions and click Remove. If you rely on the extension "
              "and trust its publisher, press Accept instead."),
