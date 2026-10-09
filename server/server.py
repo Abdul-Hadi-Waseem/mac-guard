@@ -67,7 +67,12 @@ def create_nonce():
     """Called by the `mac-guard` command: a single-use value the page trades for the real token,
     so the long-lived token never appears in a command line or in browser history."""
     nonce = secrets.token_urlsafe(32)
-    fd = os.open(NONCE_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    # unlink rather than truncate: a stale nonce left by another user (e.g. a sudo run) can't block us
+    try:
+        os.unlink(NONCE_PATH)
+    except FileNotFoundError:
+        pass
+    fd = os.open(NONCE_PATH, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "w") as f:
         f.write(nonce)
     return nonce
