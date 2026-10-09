@@ -145,7 +145,15 @@ def audit_chromium(browser, base):
     if doh.get("templates"):
         out("WARN", f"{browser}: custom DNS-over-HTTPS server set: {doh.get('templates')}")
         finding("medium", "browser", f"hijack:{browser}:doh", f"Custom DNS-over-HTTPS server set in {browser}", str(doh.get("templates")))
-    for profile_dir in sorted(glob.glob(os.path.join(base, "Default")) + glob.glob(os.path.join(base, "Profile *"))):
+    profiles = sorted(glob.glob(os.path.join(base, "Default")) + glob.glob(os.path.join(base, "Profile *")))
+    if profiles and not os.access(os.path.join(profiles[0], "Preferences"), os.R_OK):
+        # macOS 27 protects browser data: without Full Disk Access this whole section is blind, and that must be visible
+        out("WARN", f"{browser}: data not readable from this terminal - extensions and site permissions were NOT checked")
+        finding("medium", "browser", f"unreadable:{browser}", f"{browser} could not be audited: macOS denied access to its data",
+                "Grant Full Disk Access to the terminal app that runs the audit, or review extensions and site "
+                "permissions by hand in the browser. Until then the browser checks silently pass.")
+        return
+    for profile_dir in profiles:
         prof = os.path.basename(profile_dir)
         prefs, sprefs = load(os.path.join(profile_dir, "Preferences")), load(os.path.join(profile_dir, "Secure Preferences"))
         if not prefs:

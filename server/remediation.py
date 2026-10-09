@@ -27,6 +27,9 @@ REMEDIATION = (
                      "provider (removing the file does not remove it from git history). For false positives such as "
                      "test fixtures or example keys, press Accept."),
     # browser
+    ("unreadable:", "macOS 27 blocks reading browser data without Full Disk Access. Either give the terminal that "
+                    "runs `mac-guard run` Full Disk Access (System Settings > Privacy & Security), or check extensions "
+                    "and site permissions in the browser yourself."),
     ("ext:", "In that Chrome profile open chrome://extensions and click Remove. If you rely on the extension "
              "and trust its publisher, press Accept instead."),
     ("siteperm:", "In that Chrome profile open chrome://settings/content, choose the permission, and remove the site. "
