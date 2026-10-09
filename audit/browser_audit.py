@@ -227,10 +227,13 @@ def audit_chromium(browser, base):
                         finding("low", "browser", f"siteperm:{label}:{kind}:{site}", f"Site permission granted: {kind.replace('_', ' ')}", f"{site} in {label}")
                 print(f"  {lvl:<5} sites allowed '{kind}' ({len(allowed)}): {', '.join(allowed[:15])}{' ...' if len(allowed) > 15 else ''}")
 
+    # macOS puts Screen Time and other Apple settings here too; only browser policy domains matter
     pol = "/Library/Managed Preferences"
-    if os.path.isdir(pol) and os.listdir(pol):
-        out("WARN", f"{browser}: managed policy files present in {pol}: {os.listdir(pol)}")
-        finding("high", "browser", f"hijack:{browser}:policy", f"Managed browser policy files present", ", ".join(os.listdir(pol)))
+    hits = [os.path.join(root, f) for root, _, files in os.walk(pol) for f in files
+            if re.match(r"(com\.google\.Chrome|com\.brave\.Browser|com\.microsoft\.Edge|company\.thebrowser\.Browser|org\.mozilla\.firefox)", f)]
+    if hits:
+        out("WARN", f"{browser}: managed browser policy files present: {hits}")
+        finding("high", "browser", f"hijack:{browser}:policy", "Managed browser policy files present", ", ".join(hits))
 
 def audit_firefox():
     base = os.path.join(HOME, "Library/Application Support/Firefox/Profiles")
